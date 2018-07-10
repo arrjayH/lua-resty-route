@@ -1,4 +1,9 @@
+local setmetatable = setmetatable
+local type         = type
+local Redis        = {}
+
 -- TODO: Rewrite needed
+--[[
 local redis = require "resty.redis"
 return function(self)
     return function(options)
@@ -24,3 +29,4 @@ return function(self)
         end)
     end
 end
+]]--

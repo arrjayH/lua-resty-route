@@ -1,9 +1,71 @@
 local server       = require "resty.websocket.server"
 local setmetatable = setmetatable
 local type         = type
-local websocket    = {}
-return function(f)
-    return function()
+local Websocket    = {}
+Websocket.__index = Websocket
+local function make(method, method_type)
+  local method_metatable = {}
+  if not method_type then
+  elseif method_type == "table" then
+    method_metatable = method
+  elseif method_type == "function" then
+    method_metatable.text = method
+  elseif method_type == "string" then
+    method_metatable = require(method)
+  end
+  return method_metatable
+end
+function Websocket:new(method)
+  local ws_server, err = server:new{
+    timeout         = 5000,
+    max_payload_len = 65535
+  }
+  
+  if not ws_server then print("We failed...") end
+  
+  local ws_table = make(method, type(method))
+  
+  ws_table.socket = ws_server
+  ws_table.exit   = false
+  
+  return setmetatable(ws_table, Websocket)
+end
+function Websocket:timeout()
+  local _, err = self.socket:send_ping()
+end
+function Websocket:recv_frame()
+  return self.socket:recv_frame()
+end
+function Websocket:send_text(text)
+  return self.socket:send_text(text)
+end
+function Websocket:close()
+  self.exit = true
+end
+function Websocket:ping()
+  self.socket:send_pong()
+end
+function Websocket:pong()
+  self.socket:send_ping()
+end
+function Websocket:text(data)
+  self.socket:send_text(data)
+end
+return function(method)
+    return function(self)
+      local websocket = Websocket:new(method)
+      self.websocket  = websocket
+      while not websocket.exit do
+        local data, typ, err = websocket:recv_frame()
+        if not data then
+          websocket:timeout()
+        else
+          typ = if not typ then "unkown" end
+          if websocket[typ] then 
+            websocket[typ](websocket, data) 
+          end
+        end
+      end
     end
 end
 -- TODO: Rewrite needed
