@@ -51,6 +51,9 @@ end
 function Websocket:text(data)
   self.socket:send_text(data)
 end
+function Websocket:unkown(data)
+  self.socket:send_text(data)
+end
 return function(method)
     return function(self)
       local websocket = Websocket:new(method)
@@ -60,7 +63,7 @@ return function(method)
         if not data then
           websocket:timeout()
         else
-          typ = if not typ then "unkown" end
+          if not typ then typ = "unkown" end
           if websocket[typ] then 
             websocket[typ](websocket, data) 
           end
